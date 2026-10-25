@@ -1,49 +1,44 @@
 import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from anime_parsers_ru import KodikParser
+import requests
 
 app = Flask(__name__)
 CORS(app)
 
-parser = KodikParser()
-
 @app.route("/")
 def index():
-    return "Kodik Parser Backend is Running!"
+    return "KombokoWatch Backend is Running!"
 
 @app.route("/api/status")
 def status():
-    return jsonify({
-        "status": "ok",
-        "token": parser.token
-    })
+    return jsonify({"status": "ok"})
 
-@app.route("/api/direct_link")
-def direct_link():
-    link = request.args.get("link", "")
-    shikimori_id = request.args.get("shikimori_id", "")
-    seria_num = int(request.args.get("seria_num", 1))
-    translation_id = request.args.get("translation_id", "0")
+@app.route("/api/shikimori_auth", methods=["POST"])
+def shikimori_auth():
+    data = request.get_json() or {}
+    code = data.get("code")
+    redirect_uri = data.get("redirect_uri")
+
+    if not code:
+        return jsonify({"error": "No code provided"}), 400
+
+    token_url = "https://shikimori.io/oauth/token"
+    payload = {
+        "grant_type": "authorization_code",
+        "client_id": os.environ.get("SHIKI_CLIENT_ID"),
+        "client_secret": os.environ.get("SHIKI_CLIENT_SECRET"),
+        "code": code,
+        "redirect_uri": redirect_uri
+    }
+    headers = {"User-Agent": "KombokoWatchApp"}
 
     try:
-        if shikimori_id:
-            base_url, max_quality = parser.get_link(
-                id=shikimori_id,
-                id_type="shikimori",
-                seria_num=seria_num,
-                translation_id=str(translation_id)
-            )
+        resp = requests.post(token_url, data=payload, headers=headers)
+        if resp.status_code == 200:
+            return jsonify(resp.json())
         else:
-            base_url, max_quality = parser.get_m3u8_link(link)
-
-        if base_url.startswith("//"):
-            base_url = "https:" + base_url
-
-        return jsonify({
-            "base_url": base_url,
-            "max_quality": max_quality
-        })
+            return jsonify({"error": resp.text}), resp.status_code
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
