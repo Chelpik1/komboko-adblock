@@ -1,0 +1,7 @@
+flask
+flask-cors
+anime-parsers-ru
+lxml
+gunicorn
+requests
+beautifulsoup4
