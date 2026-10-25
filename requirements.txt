@@ -1,6 +1,4 @@
 flask
 flask-cors
-anime-parsers-ru
 gunicorn
 requests
-beautifulsoup4
