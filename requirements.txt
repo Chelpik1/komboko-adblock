@@ -1,4 +1,5 @@
-gunicorn
-anime-parsers-ru
-requests
 flask
+flask-cors
+requests
+anime-parsers-ru
+gunicorn
