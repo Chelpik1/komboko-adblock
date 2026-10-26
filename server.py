@@ -57,48 +57,43 @@ def proxy_player():
             title = shiki_res.get('russian') or shiki_res.get('name')
             
             if not title:
-                return jsonify({"error": "Anime not found"}), 404
+                return "Anime not found", 404
 
             # 2. Ищем аниме на AnimeGo через парсер
             search_results = parser.search(query=title)
             if not search_results:
-                return jsonify({"error": "Not found on AnimeGo"}), 404
+                return "Not found on AnimeGo", 404
             
             anime_url = search_results[0].get('link')
 
-            # 3. Получаем список озвучек для эпизода
+            # 3. Получаем список озвучек и плееров для эпизода
             voices_data = parser.get_voices(anime_id=anime_url, episode=ep)
             voices = voices_data.get('voices', [])
 
-            # 4. Ищем Aniboom среди озвучек
-            target_voice = None
+            # 4. Ищем AniBoom среди озвучек
+            aniboom_voice = None
             for v in voices:
                 player_name = str(v.get('player', '')).lower()
                 embed_link = str(v.get('embed', '')).lower()
                 if 'aniboom' in player_name or 'aniboom' in embed_link:
-                    target_voice = v
+                    aniboom_voice = v
                     break
             
-            if not target_voice and voices:
-                target_voice = voices[0]
+            if not aniboom_voice and voices:
+                aniboom_voice = voices[0]
 
-            if not target_voice:
-                return jsonify({"error": "Voice not found"}), 404
-
-            translation_id = target_voice.get('translation_id') or target_voice.get('id')
-
-            # 5. Получаем прямой поток Aniboom (HLS) по инструкции из библиотеки
-            stream_data = parser.aniboom_get_stream(anime_id=anime_url, episode=ep, translation_id=translation_id)
+            if aniboom_voice and aniboom_voice.get('embed'):
+                embed_url = aniboom_voice.get('embed')
+                if embed_url.startswith('//'):
+                    embed_url = 'https:' + embed_url
+                return redirect(embed_url)
             
-            if stream_data and stream_data.get('url'):
-                return jsonify({"url": stream_data.get('url'), "kind": "HLS"})
-            
-            return jsonify({"error": "Stream URL not found"}), 404
+            return "AniBoom stream not available", 404
 
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return f"Error: {str(e)}", 500
 
-    return jsonify({"error": "Source not supported"}), 400
+    return "Source not supported", 400
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
