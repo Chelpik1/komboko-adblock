@@ -7,13 +7,14 @@ from flask_cors import CORS
 import requests
 
 app = Flask(__name__)
-CORS(app)
+# Разрешаем запросы с любого источника (включая komboko.fun)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 parser = AnimegoParser()
 
 
 # =====================================================================
-# 1. СТАНДАРТНЫЕ СТАТУСЫ
+# 1. СТАНДАРТНЫЕ СТАТУСЫ И ХЕЛСЧЕК
 # =====================================================================
 @app.route("/")
 def index():
@@ -26,7 +27,7 @@ def status():
 
 
 # =====================================================================
-# 2. АВТОРИЗАЦИЯ SHIKIMORI (ТВОЯ РОДНАЯ, БЕЗ ЕДИНОГО ИЗМЕНЕНИЯ)
+# 2. АВТОРИЗАЦИЯ SHIKIMORI (ТВОЯ РОДНАЯ, БЕЗ ИЗМЕНЕНИЙ)
 # =====================================================================
 @app.route("/api/shikimori_auth", methods=["POST"])
 def shikimori_auth():
@@ -58,7 +59,7 @@ def shikimori_auth():
 
 
 # =====================================================================
-# 3. KODIK STREAM EXTRACTOR (ЧИСТЫЙ HLS ПОТОК БЕЗ РЕКЛАМЫ КАЗИНО)
+# 3. KODIK STREAM EXTRACTOR (ИЗВЛЕЧЕНИЕ ЧИСТОГО ПОТОКА БЕЗ РЕКЛАМЫ)
 # =====================================================================
 def decode_kodik_src(src: str) -> str:
   """Обратный сдвиг ROT-18 + Base64"""
@@ -107,7 +108,7 @@ def get_stream():
 
   try:
     session = requests.Session()
-    page_resp = session.get(link, headers=headers, timeout=12)
+    page_resp = session.get(link, headers=headers, timeout=8)
     html = page_resp.text
 
     def extract_var(name):
@@ -130,7 +131,7 @@ def get_stream():
       return (
           jsonify({
               "success": False,
-              "error": "Не удалось распарсить токены Kodik",
+              "error": "Failed to parse stream params",
               "raw_link": link,
           }),
           404,
@@ -158,7 +159,7 @@ def get_stream():
     }
 
     ftor_resp = session.post(
-        ftor_url, data=data, headers=ftor_headers, timeout=12
+        ftor_url, data=data, headers=ftor_headers, timeout=8
     )
     ftor_json = ftor_resp.json()
 
@@ -174,9 +175,9 @@ def get_stream():
           streams[f"{quality}p"] = dec
 
     best_stream = (
-        streams.get("1080p")
-        or streams.get("720p")
+        streams.get("720p")
         or streams.get("480p")
+        or streams.get("1080p")
         or streams.get("360p")
         or ""
     )
@@ -193,7 +194,7 @@ def get_stream():
 
 
 # =====================================================================
-# 4. ТВОЙ СТАРЫЙ ПРОКСИ ANIBOOM (ТОЖЕ СОХРАНЁН)
+# 4. ПРОКСИ ANIBOOM (ДЛЯ ANIMEGO)
 # =====================================================================
 @app.route("/api/proxy_player")
 def proxy_player():
