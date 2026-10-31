@@ -1,5 +1,4 @@
-flask
-flask-cors
+fastapi
+uvicorn
+anime-dl-core
 requests
-anime-parsers-ru
-gunicorn
