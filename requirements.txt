@@ -1,4 +1,5 @@
 fastapi
 uvicorn
+gunicorn
 anime-dl-core
 requests
