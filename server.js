@@ -56,14 +56,29 @@ app.get('/api/kodik/extract', async (req, res) => {
     });
     const html = await pageRes.text();
 
-    const dSign = html.match(/var\s+d_sign\s*=\s*"([^"]+)"/)?.[1] || '';
-    const pdSign = html.match(/var\s+pd_sign\s*=\s*"([^"]+)"/)?.[1] || '';
-    const ref = html.match(/var\s+ref\s*=\s*"([^"]+)"/)?.[1] || 'https://shikimori.io/';
-    const refSign = html.match(/var\s+ref_sign\s*=\s*"([^"]+)"/)?.[1] || '';
+// Всеядный поиск подписей с поддержкой любых кавычек
+    const dSign = html.match(/var\s+d_sign\s*=\s*["']([^"']+)["']/)?.[1] || '';
+    const pdSign = html.match(/var\s+pd_sign\s*=\s*["']([^"']+)["']/)?.[1] || '';
+    const ref = html.match(/var\s+ref\s*=\s*["']([^"']+)["']/)?.[1] || 'https://shikimori.io/';
+    const refSign = html.match(/var\s+ref_sign\s*=\s*["']([^"']+)["']/)?.[1] || '';
 
-    const epMatch = html.match(new RegExp(`<option[^>]*value=["']${epNum}["'][^>]*data-id=["']([^"']+)["'][^>]*data-hash=["']([^"']+)["']`));
-    const epId = epMatch ? epMatch[1] : (html.match(/videoInfo\.id\s*=\s*"([^"]+)"/)?.[1] || '');
-    const epHash = epMatch ? epMatch[2] : (html.match(/videoInfo\.hash\s*=\s*"([^"]+)"/)?.[1] || '');
+    // Универсальный поиск id и hash серии
+    const epRegex = new RegExp(`<option[^>]*value=["']${epNum}["'][^>]*data-id=["']([^"']+)["'][^>]*data-hash=["']([^"']+)["']`, 'i');
+    const epMatch = html.match(epRegex);
+
+    let epId = epMatch ? epMatch[1] : '';
+    let epHash = epMatch ? epMatch[2] : '';
+
+    if (!epId) {
+      epId = html.match(/videoInfo\.id\s*=\s*["']([^"']+)["']/)?.[1] || 
+             html.match(/"id"\s*:\s*"(\d+)"/)?.[1] || 
+             html.match(/data-id=["'](\d+)["']/)?.[1] || '';
+    }
+    if (!epHash) {
+      epHash = html.match(/videoInfo\.hash\s*=\s*["']([^"']+)["']/)?.[1] || 
+               html.match(/"hash"\s*:\s*"([a-zA-Z0-9]+)"/)?.[1] || 
+               html.match(/data-hash=["']([a-zA-Z0-9]+)["']/)?.[1] || '';
+    }
 
     if (!epId || !epHash) {
       return res.json({ success: false, error: 'Cannot parse episode credentials' });
