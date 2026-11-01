@@ -98,10 +98,11 @@ app.get('/api/kodik/extract', async (req, res) => {
     const epRegex = new RegExp(`<option[^>]*value=["']${epNum}["'][^>]*data-id=["']([^"']+)["'][^>]*data-hash=["']([^"']+)["']`);
     const epMatch = html.match(epRegex);
 
-    const epId = epMatch ? epMatch[1] : (html.match(/videoInfo\.id\s*=\s*["']([^"']+)["']/)?.[1] || '');
-    const epHash = epMatch ? epMatch[2] : (html.match(/videoInfo\.hash\s*=\s*["']([^"']+)["']/)?.[1] || '');
+    let epId = epMatch ? epMatch[1] : (html.match(/videoInfo\.id\s*=\s*["']([^"']+)["']/)?.[1] || '');
+    let epHash = epMatch ? epMatch[2] : (html.match(/videoInfo\.hash\s*=\s*["']([^"']+)["']/)?.[1] || '');
     const epType = html.match(/videoInfo\.type\s*=\s*["']([^"']+)["']/)?.[1] || 'seria';
-    // Универсальный поиск id и hash, если стандартный селектор серий не сработал
+
+    // Универсальный поиск, если переменные остались пустыми
     if (!epId) {
       epId = html.match(/videoInfo\.id\s*=\s*["']([^"']+)["']/)?.[1] || 
              html.match(/"id"\s*:\s*"(\d+)"/)?.[1] || 
@@ -112,6 +113,7 @@ app.get('/api/kodik/extract', async (req, res) => {
                html.match(/"hash"\s*:\s*"([a-zA-Z0-9]+)"/)?.[1] || 
                html.match(/data-hash=["']([a-zA-Z0-9]+)["']/)?.[1] || '';
     }
+
     if (!epId || !epHash) {
       return res.json({ success: false, error: 'Cannot parse episode credentials' });
     }
