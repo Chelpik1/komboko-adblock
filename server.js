@@ -101,7 +101,17 @@ app.get('/api/kodik/extract', async (req, res) => {
     const epId = epMatch ? epMatch[1] : (html.match(/videoInfo\.id\s*=\s*["']([^"']+)["']/)?.[1] || '');
     const epHash = epMatch ? epMatch[2] : (html.match(/videoInfo\.hash\s*=\s*["']([^"']+)["']/)?.[1] || '');
     const epType = html.match(/videoInfo\.type\s*=\s*["']([^"']+)["']/)?.[1] || 'seria';
-
+    // Универсальный поиск id и hash, если стандартный селектор серий не сработал
+    if (!epId) {
+      epId = html.match(/videoInfo\.id\s*=\s*["']([^"']+)["']/)?.[1] || 
+             html.match(/"id"\s*:\s*"(\d+)"/)?.[1] || 
+             html.match(/data-id=["'](\d+)["']/)?.[1] || '';
+    }
+    if (!epHash) {
+      epHash = html.match(/videoInfo\.hash\s*=\s*["']([^"']+)["']/)?.[1] || 
+               html.match(/"hash"\s*:\s*"([a-zA-Z0-9]+)"/)?.[1] || 
+               html.match(/data-hash=["']([a-zA-Z0-9]+)["']/)?.[1] || '';
+    }
     if (!epId || !epHash) {
       return res.json({ success: false, error: 'Cannot parse episode credentials' });
     }
